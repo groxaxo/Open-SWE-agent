@@ -22,6 +22,19 @@ It does so by using configurable [agent-computer interfaces](https://arxiv.org/a
 
 SWE-agent is built and maintained by researchers from Princeton University and Stanford University.
 
+## 💪 Key Capabilities
+
+SWE-agent provides several powerful capabilities:
+
+- **Isolated Environments**: Run agents in Docker containers to ensure safety and reproducibility
+- **Multiple Model Support**: Use GPT-4, Claude, or any LiteLLM-supported model
+- **Tool Use**: Provide agents with a configurable set of tools to interact with the environment
+- **Function Calling**: Structured tool use with modern LLMs that support function calling
+- **Cost Control**: Set limits on API costs to prevent unexpected expenses
+- **Benchmarking**: Run agents on multiple tasks and evaluate their performance
+- **Human-in-the-Loop**: Interact with the agent during execution for debugging or assistance
+- **Extensibility**: Add custom models, tools, environments, and hooks
+
 ## 📣 News
 
 * May 2: [SWE-agent-LM-32b](https://swesmith.com) achieves open-weights SOTA on SWE-bench
@@ -42,6 +55,102 @@ Read our [documentation][docs] to learn more:
 * [Frequently Asked Questions](https://swe-agent.com/latest/faq/)
 
 [docs]: https://swe-agent.com
+
+## 🏗️ Codebase Structure
+
+SWE-agent is organized into several key modules:
+
+### Core Components
+
+- **Agent Module** (`sweagent/agent/`): Implements the agent logic and interaction with language models
+  - `agents.py`: Contains the `DefaultAgent` class that manages the agent's execution flow
+  - `models.py`: Handles different model backends (GPT, Claude, human-in-the-loop, etc.)
+  - `problem_statement.py`: Manages the problem descriptions that the agent works on
+
+- **Environment Module** (`sweagent/environment/`): Manages the execution environment
+  - `swe_env.py`: Contains the `SWEEnv` class that provides an isolated environment (typically Docker containers)
+  - Handles file system operations, command execution, and environment setup
+
+- **Tools Module** (`sweagent/tools/`): Implements the tools available to the agent
+  - `tools.py`: Contains the `ToolHandler` class that manages available commands
+  - Handles command parsing, execution, and filtering
+
+- **Run Module** (`sweagent/run/`): Contains the CLI interface and execution logic
+  - `run_single.py`: Handles running a single agent instance
+  - `run_batch.py`: Manages batch execution for benchmarking
+
+### Execution Flow
+
+1. The user provides a problem statement (GitHub issue, local file, etc.)
+2. SWE-agent sets up an isolated environment (Docker container)
+3. The agent iteratively:
+   - Analyzes the problem and context
+   - Decides on actions to take
+   - Executes commands through the environment
+   - Observes results and updates its understanding
+4. The agent continues until it solves the problem or reaches a stopping condition
+
+### Configuration
+
+SWE-agent is highly configurable through YAML files and command-line arguments:
+- Model selection and parameters
+- Environment settings
+- Tool availability and permissions
+- Execution hooks for custom behaviors
+
+### Extending SWE-agent
+
+SWE-agent is designed to be extensible in several ways:
+
+1. **Custom Models**: Add support for new language models by extending the `AbstractModel` class
+   - Implement the `query` method to interact with your model
+   - Register your model in the `get_model` factory function
+
+2. **Custom Tools**: Add new tools by defining them in your configuration
+   - Tools are defined as commands with optional parameters
+   - Function calling is supported for structured tool use
+
+3. **Custom Environments**: Create specialized environments by extending the `SWEEnv` class
+   - Implement custom deployment types beyond Docker
+   - Add specialized file system or network capabilities
+
+4. **Custom Hooks**: Add hooks to modify agent behavior at different stages
+   - Implement the `RunHook` interface to add custom behaviors
+   - Hooks can be triggered at initialization, start, completion, etc.
+
+## 🔧 Advanced Usage Examples
+
+### Fixing a GitHub Issue
+
+```bash
+sweagent run --config config/default.yaml --agent.model.name "gpt-4o" \
+    --env.repo.github_url=https://github.com/SWE-agent/test-repo/ \
+    --problem_statement.github_url=https://github.com/SWE-agent/test-repo/issues/1
+```
+
+### Using a Local Repository
+
+```bash
+sweagent run --config config/default.yaml --agent.model.name "gpt-4o" \
+    --env.repo.path /path/to/local/repo \
+    --problem_statement.path /path/to/problem_statement.md
+```
+
+### Running with Human-in-the-Loop
+
+```bash
+sweagent run --config config/default.yaml --agent.model.name "human" \
+    --env.repo.github_url=https://github.com/SWE-agent/test-repo/ \
+    --problem_statement.github_url=https://github.com/SWE-agent/test-repo/issues/1
+```
+
+### Benchmarking on Multiple Tasks
+
+```bash
+sweagent run-batch --config config/default.yaml --agent.model.name "gpt-4o" \
+    --env.repo.github_url=https://github.com/SWE-agent/test-repo/ \
+    --problem_statement.path /path/to/problem_statements/
+```
 
 ## SWE-agent for offensive cybersecurity (EnIGMA) <a name="enigma"></a>
 
@@ -72,6 +181,38 @@ In addition, you might be interested in the following projects:
 ## Contributions <a name="contributions"></a>
 
 If you'd like to contribute to the codebase, we welcome [issues](https://github.com/SWE-agent/SWE-agent/issues) and [pull requests](https://github.com/SWE-agent/SWE-agent/pulls)! For larger code changes, we always encourage discussion in issues first.
+
+### Development Setup
+
+1. Clone the repository:
+   ```bash
+   git clone https://github.com/SWE-agent/SWE-agent.git
+   cd SWE-agent
+   ```
+
+2. Create a virtual environment:
+   ```bash
+   python -m venv venv
+   source venv/bin/activate  # On Windows: venv\Scripts\activate
+   ```
+
+3. Install dependencies:
+   ```bash
+   pip install -e ".[dev]"
+   ```
+
+4. Run tests:
+   ```bash
+   pytest
+   ```
+
+### Code Structure for Contributors
+
+- **Core Logic**: Most of the agent's core logic is in `sweagent/agent/agents.py`
+- **Model Interaction**: Model interfaces are defined in `sweagent/agent/models.py`
+- **Environment**: Environment setup and interaction in `sweagent/environment/swe_env.py`
+- **Tools**: Tool definitions and handling in `sweagent/tools/tools.py`
+- **CLI**: Command-line interface in `sweagent/run/`
 
 ## Citation & contact <a name="citation"></a>
 
