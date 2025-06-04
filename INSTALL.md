@@ -78,8 +78,6 @@ python -m sweagent
 
 # Run the web UI
 ./start_web_ui.sh
-# OR
-python -m sweagent run-api --host 0.0.0.0 --port 12000
 ```
 
 ## Troubleshooting

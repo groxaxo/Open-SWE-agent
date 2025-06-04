@@ -266,7 +266,5 @@ echo -e "\nTo run SWE-agent:"
 echo -e "  ${YELLOW}python -m sweagent${NC}"
 echo -e "\nTo run the web UI:"
 echo -e "  ${YELLOW}./start_web_ui.sh${NC}"
-echo -e "  or"
-echo -e "  ${YELLOW}python -m sweagent run-api --host 0.0.0.0 --port 12000${NC}"
 
 echo -e "\n${BOLD}Enjoy using SWE-agent!${NC}"
