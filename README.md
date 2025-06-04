@@ -47,6 +47,25 @@ SWE-agent provides several powerful capabilities:
 
 👉 Try SWE-agent in your browser: [![Open in GitHub Codespaces](https://img.shields.io/badge/Open_in_GitHub_Codespaces-gray?logo=github)](https://codespaces.new/SWE-agent/SWE-agent) ([more information](https://swe-agent.com/latest/installation/codespaces/))
 
+### Quick Installation
+
+For local installation, we provide easy-to-use installation scripts:
+
+```bash
+# Clone the repository
+git clone https://github.com/SWE-agent/SWE-agent.git
+cd SWE-agent
+
+# Run the installation script
+./install.sh  # Basic installation
+# OR
+./install_advanced.sh  # Advanced installation with more options
+```
+
+See [INSTALL.md](INSTALL.md) for detailed installation instructions.
+
+### Learn More
+
 Read our [documentation][docs] to learn more:
 
 * [Installation](https://swe-agent.com/latest/installation/source/)
@@ -183,6 +202,28 @@ In addition, you might be interested in the following projects:
 If you'd like to contribute to the codebase, we welcome [issues](https://github.com/SWE-agent/SWE-agent/issues) and [pull requests](https://github.com/SWE-agent/SWE-agent/pulls)! For larger code changes, we always encourage discussion in issues first.
 
 ### Development Setup
+
+#### Automated Installation (Recommended)
+
+We provide two installation scripts for easy setup:
+
+1. Basic installation:
+   ```bash
+   ./install.sh
+   ```
+   This script automatically creates a virtual environment using uv or conda (whichever is available) and installs all required dependencies.
+
+2. Advanced installation with more options:
+   ```bash
+   ./install_advanced.sh
+   ```
+   This script provides additional options like Python version selection, system dependency checks, and more.
+
+See [INSTALL.md](INSTALL.md) for detailed installation instructions.
+
+#### Manual Installation
+
+If you prefer to install manually:
 
 1. Clone the repository:
    ```bash
