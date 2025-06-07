@@ -240,12 +240,104 @@ class HumanThoughtModelConfig(HumanModelConfig):
     model_config = ConfigDict(extra="forbid")
 
 
+class OllamaModelConfig(GenericAPIModelConfig):
+    """Model config for Ollama models"""
+
+    type: Literal["ollama"] = "ollama"
+    name: str = Field(description="Name of the Ollama model (e.g., ollama/phi3 or ollama_chat/phi3).")
+
+    model_config = ConfigDict(extra="forbid")
+
+
+class AzureOpenAIModelConfig(GenericAPIModelConfig):
+    """Model config for Azure OpenAI models"""
+
+    type: Literal["azure"] = "azure"
+    name: str = Field(description="Name of the Azure deployment (e.g., azure/my-deployment).")
+    api_version: str = Field(description="Azure API version (e.g., '2023-07-01-preview').")
+
+    model_config = ConfigDict(extra="forbid")
+
+
+class OpenAICompatibleModelConfig(GenericAPIModelConfig):
+    """Model config for generic OpenAI-compatible models"""
+
+    type: Literal["openai_compatible"] = "openai_compatible"
+    name: str = Field(description="Name of the model (e.g., openai/my-custom-model).")
+
+    model_config = ConfigDict(extra="forbid")
+
+
+class GeminiModelConfig(GenericAPIModelConfig):
+    """Model config for Google Gemini models (via Google AI Studio)"""
+
+    type: Literal["gemini"] = "gemini"
+    name: str = Field(description="Name of the Gemini model (e.g., gemini/gemini-pro). Requires GEMINI_API_KEY.")
+
+    model_config = ConfigDict(extra="forbid")
+
+
+class DeepSeekModelConfig(GenericAPIModelConfig):
+    """Model config for DeepSeek models"""
+
+    type: Literal["deepseek"] = "deepseek"
+    name: str = Field(description="Name of the DeepSeek model (e.g., deepseek/deepseek-coder). Requires DEEPSEEK_API_KEY.")
+
+    model_config = ConfigDict(extra="forbid")
+
+
+class FireworksAIModelConfig(GenericAPIModelConfig):
+    """Model config for Fireworks AI models"""
+
+    type: Literal["fireworks_ai"] = "fireworks_ai"
+    name: str = Field(
+        description="Name of the Fireworks AI model (e.g., fireworks_ai/accounts/fireworks/models/llama-v3-70b-instruct). Requires FIREWORKS_AI_API_KEY."
+    )
+
+    model_config = ConfigDict(extra="forbid")
+
+
+class OpenRouterModelConfig(GenericAPIModelConfig):
+    """Model config for OpenRouter models"""
+
+    type: Literal["openrouter"] = "openrouter"
+    name: str = Field(
+        description="Name of the OpenRouter model (e.g., openrouter/google/palm-2-chat-bison). Requires OPENROUTER_API_KEY."
+    )
+
+    model_config = ConfigDict(extra="forbid")
+
+
+class VertexAIModelConfig(GenericAPIModelConfig):
+    """Model config for Google Vertex AI models (includes Gemini on Vertex, PaLM/LaMDA-like models e.g. chat-bison)"""
+
+    type: Literal["vertex_ai"] = "vertex_ai"
+    name: str = Field(
+        description="Name of the Vertex AI model (e.g., vertex_ai/gemini-pro, vertex_ai/chat-bison). Authentication via gcloud ADC or service account JSON."
+    )
+    vertex_project: str | None = Field(default=None, description="Google Cloud Project ID for Vertex AI.")
+    vertex_location: str | None = Field(default=None, description="Google Cloud Region for Vertex AI (e.g., us-central1).")
+    vertex_credentials: SecretStr | None = Field(
+        default=None, description="JSON string or path to service account key file for Vertex AI."
+    )
+
+    model_config = ConfigDict(extra="forbid")
+
+
 ModelConfig = Annotated[
     GenericAPIModelConfig
     | ReplayModelConfig
     | InstantEmptySubmitModelConfig
     | HumanModelConfig
-    | HumanThoughtModelConfig,
+    | HumanThoughtModelConfig
+    | OllamaModelConfig
+    | AzureOpenAIModelConfig
+    | OpenAICompatibleModelConfig
+    | GeminiModelConfig
+    | DeepSeekModelConfig
+    | FireworksAIModelConfig
+    | OpenRouterModelConfig
+    | VertexAIModelConfig,
     Field(union_mode="left_to_right"),
 ]
 
@@ -653,6 +745,18 @@ class LiteLLMModel(AbstractModel):
         if self.config.api_base:
             # Not assigned a default value in litellm, so only pass this if it's set
             extra_args["api_base"] = self.config.api_base
+
+        # Add Vertex AI specific parameters if applicable
+        if isinstance(self.config, VertexAIModelConfig):
+            if self.config.vertex_project:
+                extra_args["vertex_project"] = self.config.vertex_project
+            if self.config.vertex_location:
+                extra_args["vertex_location"] = self.config.vertex_location
+            if self.config.vertex_credentials:
+                creds_value = self.config.vertex_credentials.get_secret_value()
+                if creds_value:  # Ensure it's not an empty string
+                    extra_args["vertex_credentials"] = creds_value
+
         if self.tools.use_function_calling:
             extra_args["tools"] = self.tools.tools
         # We need to always set max_tokens for anthropic models
@@ -802,30 +906,71 @@ class LiteLLMModel(AbstractModel):
 
 def get_model(args: ModelConfig, tools: ToolConfig) -> AbstractModel:
     """Returns correct model object given arguments and commands"""
-    # Convert GenericAPIModelConfig to specific model config if needed
-    if isinstance(args, GenericAPIModelConfig) and not isinstance(
-        args, HumanModelConfig | HumanThoughtModelConfig | ReplayModelConfig | InstantEmptySubmitModelConfig
-    ):
-        if args.name == "human":
-            args = HumanModelConfig(**args.model_dump())
-        elif args.name == "human_thought":
-            args = HumanThoughtModelConfig(**args.model_dump())
-        elif args.name == "replay":
-            args = ReplayModelConfig(**args.model_dump())
-        elif args.name == "instant_empty_submit":
-            args = InstantEmptySubmitModelConfig(**args.model_dump())
-
-    if args.name == "human":
-        assert isinstance(args, HumanModelConfig), f"Expected {HumanModelConfig}, got {args}"
+    # 1. Handle non-GenericAPI based models first (these are exact types, no prefix)
+    if isinstance(args, HumanModelConfig): # This also catches HumanThoughtModelConfig
+        if isinstance(args, HumanThoughtModelConfig):
+            return HumanThoughtModel(args, tools)
         return HumanModel(args, tools)
-    if args.name == "human_thought":
-        assert isinstance(args, HumanThoughtModelConfig), f"Expected {HumanThoughtModelConfig}, got {args}"
-        return HumanThoughtModel(args, tools)
-    if args.name == "replay":
-        assert isinstance(args, ReplayModelConfig), f"Expected {ReplayModelConfig}, got {args}"
+    if isinstance(args, ReplayModelConfig):
         return ReplayModel(args, tools)
-    elif args.name == "instant_empty_submit":
-        assert isinstance(args, InstantEmptySubmitModelConfig), f"Expected {InstantEmptySubmitModelConfig}, got {args}"
+    if isinstance(args, InstantEmptySubmitModelConfig):
         return InstantEmptySubmitTestModel(args, tools)
-    assert isinstance(args, GenericAPIModelConfig), f"Expected {GenericAPIModelConfig}, got {args}"
-    return LiteLLMModel(args, tools)
+
+    # 2. Handle specific API model configs if they are already correctly typed by Pydantic
+    # (e.g., if "type: ollama" was in the YAML, Pydantic would instantiate OllamaModelConfig)
+    if isinstance(args, OllamaModelConfig):
+        return LiteLLMModel(args, tools)
+    if isinstance(args, AzureOpenAIModelConfig):
+        return LiteLLMModel(args, tools)
+    if isinstance(args, OpenAICompatibleModelConfig):
+        return LiteLLMModel(args, tools)
+    if isinstance(args, GeminiModelConfig):
+        return LiteLLMModel(args, tools)
+    if isinstance(args, DeepSeekModelConfig):
+        return LiteLLMModel(args, tools)
+    if isinstance(args, FireworksAIModelConfig):
+        return LiteLLMModel(args, tools)
+    if isinstance(args, OpenRouterModelConfig):
+        return LiteLLMModel(args, tools)
+    if isinstance(args, VertexAIModelConfig):
+        return LiteLLMModel(args, tools)
+
+    # 3. If args is GenericAPIModelConfig, try to infer and convert to a more specific type based on name prefix
+    if isinstance(args, GenericAPIModelConfig):
+        if args.name.startswith("ollama/") or args.name.startswith("ollama_chat/"):
+            args = OllamaModelConfig(**args.model_dump())
+            return LiteLLMModel(args, tools)
+        if args.name.startswith("azure/"):
+            # Ensure api_version is present if we infer Azure, otherwise it will fail later
+            if not getattr(args, "api_version", None):
+                raise ModelConfigurationError(
+                    f"Model name '{args.name}' suggests an Azure model, but 'api_version' is missing."
+                )
+            args = AzureOpenAIModelConfig(**args.model_dump())
+            return LiteLLMModel(args, tools)
+        if args.name.startswith("openai/"): # For generic OpenAI-compatible
+            args = OpenAICompatibleModelConfig(**args.model_dump())
+            return LiteLLMModel(args, tools)
+        if args.name.startswith("gemini/"): # For Google AI Studio Gemini
+            args = GeminiModelConfig(**args.model_dump())
+            return LiteLLMModel(args, tools)
+        if args.name.startswith("deepseek/"):
+            args = DeepSeekModelConfig(**args.model_dump())
+            return LiteLLMModel(args, tools)
+        if args.name.startswith("fireworks_ai/"):
+            args = FireworksAIModelConfig(**args.model_dump())
+            return LiteLLMModel(args, tools)
+        if args.name.startswith("openrouter/"):
+            args = OpenRouterModelConfig(**args.model_dump())
+            return LiteLLMModel(args, tools)
+        if args.name.startswith("vertex_ai/"):
+            args = VertexAIModelConfig(**args.model_dump())
+            return LiteLLMModel(args, tools)
+
+        # If no prefix matches, and it's a GenericAPIModelConfig,
+        # it could be a direct OpenAI model (e.g., "gpt-4") or other litellm pass-through.
+        return LiteLLMModel(args, tools)
+
+    # Should not be reached if ModelConfig union and above logic is comprehensive
+    msg = f"Unexpected arguments type: {type(args)}. Could not determine model type."
+    raise TypeError(msg)

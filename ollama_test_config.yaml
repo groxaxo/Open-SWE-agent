@@ -1,0 +1,30 @@
+agent:
+  model:
+    name: ollama/phi3
+    api_base: http://localhost:11434
+    per_instance_cost_limit: 0
+    total_cost_limit: 0
+    temperature: 0.0
+    # The 'type: ollama' can be omitted as get_model should infer it.
+  templates:
+    system_template: "You are a helpful assistant that follows instructions precisely."
+    instance_template: "The user wants you to achieve the following goal: {{problem_statement}}. Use the available tools to solve it."
+    # Keep other templates as default for now.
+  tools:
+    enable_bash_tool: true # Keep bash tool enabled for echo
+    bundles: [] # No custom tools needed
+    parse_function: "thought_action" # Use thought_action for simpler models like phi3
+
+problem_statement:
+  id: ollama_test_echo
+  text: "Use the echo command to print the exact string 'TestEchoSuccess' to the terminal. Do nothing else."
+
+env:
+  deployment:
+    type: docker
+    docker:
+      image: python:3.11-slim # A lightweight image
+  repo:
+    type: none # No actual repository access needed for an echo test
+
+output_dir: ./test_ollama_output/
