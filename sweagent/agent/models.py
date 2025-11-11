@@ -66,6 +66,39 @@ class RetryConfig(PydanticBaseModel):
 class GenericAPIModelConfig(PydanticBaseModel):
     """This configuration object specifies a LM like GPT4 or similar.
     The model will be served with the help of the `litellm` library.
+    
+    SWE-agent is fully compatible with OpenAI API endpoints and supports a wide range of models:
+    
+    **Cloud Models:**
+    - OpenAI: gpt-4o, gpt-4o-mini, gpt-4-turbo (with vision support)
+    - Anthropic: claude-3-7-sonnet-20250219, claude-3-5-sonnet (with vision support)
+    - DeepSeek: deepseek-chat, deepseek-coder, deepseek-vl (vision model)
+    
+    **Local Models (via Ollama):**
+    - Text: ollama/llama3.3:70b, ollama/codellama, ollama/deepseek-coder-v2
+    - Vision: ollama/llava, ollama/llava-phi3, ollama/bakllava
+    
+    **Vision Model Support:**
+    Vision models are fully supported. The content field in messages can accept both text
+    and image data. Images can be provided as URLs or base64-encoded data.
+    
+    Example message format for vision models:
+    ```python
+    {
+        "role": "user",
+        "content": [
+            {"type": "text", "text": "What's in this image?"},
+            {"type": "image_url", "image_url": {"url": "https://example.com/image.jpg"}}
+        ]
+    }
+    ```
+    
+    **API Configuration:**
+    - Set API keys via environment variables (e.g., OPENAI_API_KEY, ANTHROPIC_API_KEY, DEEPSEEK_API_KEY)
+    - Or use the `api_key` parameter directly
+    - Use `api_base` to specify custom API endpoints (e.g., for Ollama: "http://localhost:11434")
+    
+    See https://docs.litellm.ai/docs/providers for all supported providers.
     """
 
     name: str = Field(description="Name of the model.")
