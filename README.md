@@ -27,7 +27,9 @@ SWE-agent is built and maintained by researchers from Princeton University and S
 SWE-agent provides several powerful capabilities:
 
 - **Isolated Environments**: Run agents in Docker containers to ensure safety and reproducibility
-- **Multiple Model Support**: Use GPT-4, Claude, or any LiteLLM-supported model
+- **Universal Model Support**: Fully compatible with OpenAI API endpoints and any LiteLLM-supported model
+- **Vision Model Support**: Native support for multimodal models (GPT-4o, Claude 3.7, DeepSeek-VL, LLaVA)
+- **Local Model Support**: Compatible with Ollama, DeepSeek, and other local/open-source models
 - **Tool Use**: Provide agents with a configurable set of tools to interact with the environment
 - **Function Calling**: Structured tool use with modern LLMs that support function calling
 - **Cost Control**: Set limits on API costs to prevent unexpected expenses
@@ -117,6 +119,118 @@ SWE-agent is designed to be extensible in several ways:
 4. **Custom Hooks**: Add hooks to modify agent behavior at different stages
    - Implement the `RunHook` interface to add custom behaviors
    - Hooks can be triggered at initialization, start, completion, etc.
+
+## 🤖 Model Compatibility
+
+SWE-agent is a universal CLI agent fully compatible with **OpenAI API endpoints** and supports a wide range of language models through [LiteLLM](https://docs.litellm.ai/docs/providers). This includes:
+
+### Cloud-Based Models
+
+#### OpenAI
+- **GPT-4 series**: `gpt-4o`, `gpt-4o-mini`, `gpt-4-turbo`, `gpt-4`
+- **Vision support**: GPT-4o and GPT-4o-mini support image inputs
+- **Set API key**: `export OPENAI_API_KEY=your_key` or use `--agent.model.api_key`
+
+```bash
+sweagent run --config config/default.yaml --agent.model.name "gpt-4o" \
+    --env.repo.github_url=https://github.com/SWE-agent/test-repo/ \
+    --problem_statement.github_url=https://github.com/SWE-agent/test-repo/issues/1
+```
+
+#### Anthropic Claude
+- **Claude 3.7**: `claude-3-7-sonnet-20250219` (current SOTA on SWE-bench)
+- **Claude 3.5**: `claude-3-5-sonnet-20241022`
+- **Vision support**: All Claude 3+ models support image inputs
+- **Set API key**: `export ANTHROPIC_API_KEY=your_key`
+
+```bash
+sweagent run --config config/default.yaml --agent.model.name "claude-3-7-sonnet-20250219" \
+    --env.repo.github_url=https://github.com/SWE-agent/test-repo/ \
+    --problem_statement.github_url=https://github.com/SWE-agent/test-repo/issues/1
+```
+
+#### DeepSeek
+- **DeepSeek models**: `deepseek-chat`, `deepseek-coder`
+- **Vision support**: `deepseek-vl` (DeepSeek Vision-Language model)
+- **Set API key**: `export DEEPSEEK_API_KEY=your_key`
+
+```bash
+# Text-based model
+sweagent run --config config/default.yaml --agent.model.name "deepseek-chat" \
+    --agent.model.api_base "https://api.deepseek.com" \
+    --env.repo.path /path/to/repo \
+    --problem_statement.path /path/to/problem.md
+
+# Vision model
+sweagent run --config config/default.yaml --agent.model.name "deepseek-vl" \
+    --agent.model.api_base "https://api.deepseek.com" \
+    --env.repo.path /path/to/repo \
+    --problem_statement.path /path/to/problem.md
+```
+
+### Local Models
+
+#### Ollama
+Run models locally with Ollama. SWE-agent is fully compatible with Ollama-hosted models.
+
+- **Text models**: `llama3.3:70b`, `codellama`, `deepseek-coder-v2`, `qwen2.5-coder`
+- **Vision models**: `llava`, `llava-phi3`, `bakllava`
+- **Setup**: Install [Ollama](https://ollama.ai/) and pull your desired model
+
+```bash
+# First, start Ollama and pull a model:
+# ollama pull llama3.3:70b
+
+# Use with SWE-agent
+sweagent run --config config/default.yaml \
+    --agent.model.name "ollama/llama3.3:70b" \
+    --env.repo.path /path/to/repo \
+    --problem_statement.path /path/to/problem.md
+
+# Using a vision model with Ollama
+sweagent run --config config/default.yaml \
+    --agent.model.name "ollama/llava" \
+    --env.repo.path /path/to/repo \
+    --problem_statement.path /path/to/problem.md
+```
+
+### Vision Model Support
+
+SWE-agent natively supports multimodal models that can process both text and images. This is useful for:
+- Analyzing UI/UX issues with screenshots
+- Understanding diagrams and architectural drawings
+- Processing visual bug reports
+- Debugging visual rendering issues
+
+**Supported vision models:**
+- OpenAI: `gpt-4o`, `gpt-4o-mini`
+- Anthropic: `claude-3-opus`, `claude-3-sonnet`, `claude-3-7-sonnet-20250219`
+- DeepSeek: `deepseek-vl`
+- Ollama: `llava`, `llava-phi3`, `bakllava`
+
+Vision models work out of the box - just provide a model name that supports vision capabilities.
+
+### Custom API Endpoints
+
+SWE-agent supports any OpenAI-compatible API endpoint:
+
+```bash
+sweagent run --config config/default.yaml \
+    --agent.model.name "custom-model" \
+    --agent.model.api_base "https://your-api-endpoint.com/v1" \
+    --agent.model.api_key "your_api_key" \
+    --env.repo.path /path/to/repo \
+    --problem_statement.path /path/to/problem.md
+```
+
+### Additional Providers
+
+Through LiteLLM, SWE-agent also supports:
+- **Azure OpenAI**: Use `azure/` prefix
+- **Google Vertex AI**: Use `vertex_ai/` prefix
+- **AWS Bedrock**: Use `bedrock/` prefix
+- **Hugging Face**: Use `huggingface/` prefix
+- **And 100+ more providers**: See [LiteLLM docs](https://docs.litellm.ai/docs/providers)
 
 ## 🔧 Advanced Usage Examples
 
